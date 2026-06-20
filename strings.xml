@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">My Doc Reader</string>
+    <string name="open_file">File Kholo</string>
+    <string name="recent_files">Recent Files</string>
+    <string name="no_recent_files">Koi recent file nahi hai</string>
+    <string name="permission_required">Storage permission chahiye</string>
+    <string name="grant_permission">Permission Do</string>
+    <string name="file_not_supported">Yeh file type support nahi hai</string>
+    <string name="loading">Load ho raha hai...</string>
+    <string name="error_opening">File open nahi ho saki</string>
+    <string name="sheet">Sheet</string>
+    <string name="page">Page</string>
+</resources>
