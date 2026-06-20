@@ -20,15 +20,566 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Gradle
+      - name: Create project structure
+        run: |
+          mkdir -p app/src/main/java/com/mydocreader/app
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/xml
+          mkdir -p app/src/main/res/drawable
+          mkdir -p gradle/wrapper
+
+      - name: Create settings.gradle
+        run: |
+          cat > settings.gradle << 'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+                  maven { url 'https://jitpack.io' }
+              }
+          }
+          rootProject.name = "MyDocReader"
+          include ':app'
+          EOF
+
+      - name: Create root build.gradle
+        run: |
+          cat > build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application' version '8.1.0' apply false
+          }
+          EOF
+
+      - name: Create app build.gradle
+        run: |
+          cat > app/build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+          android {
+              namespace 'com.mydocreader.app'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.mydocreader.app"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+              packagingOptions {
+                  exclude 'META-INF/DEPENDENCIES'
+                  exclude 'META-INF/LICENSE'
+                  exclude 'META-INF/NOTICE'
+              }
+          }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.11.0'
+              implementation 'androidx.recyclerview:recyclerview:1.3.2'
+              implementation 'androidx.cardview:cardview:1.0.0'
+              implementation 'com.github.barteksc:android-pdf-viewer:3.2.0-beta.1'
+              implementation 'org.apache.poi:poi:5.2.3'
+              implementation 'org.apache.poi:poi-ooxml:5.2.3'
+          }
+          EOF
+
+      - name: Create gradle wrapper properties
+        run: |
+          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.0-bin.zip
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          EOF
+
+      - name: Create gradle.properties
+        run: |
+          cat > gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx2048m
+          android.useAndroidX=true
+          android.enableJetifier=true
+          EOF
+
+      - name: Create AndroidManifest
+        run: |
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
+              <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" xmlns:tools="http://schemas.android.com/tools"/>
+              <application
+                  android:allowBackup="true"
+                  android:label="My Doc Reader"
+                  android:theme="@style/Theme.MyDocReader"
+                  android:supportsRtl="true">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+                  <activity android:name=".PdfViewerActivity" android:exported="false"/>
+                  <activity android:name=".ExcelViewerActivity" android:exported="false"/>
+                  <activity android:name=".WordViewerActivity" android:exported="false"/>
+                  <activity android:name=".TextViewerActivity" android:exported="false"/>
+                  <activity android:name=".ImageViewerActivity" android:exported="false"/>
+              </application>
+          </manifest>
+          EOF
+
+      - name: Create strings.xml
+        run: |
+          cat > app/src/main/res/values/strings.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="app_name">My Doc Reader</string>
+              <string name="no_recent_files">Koi recent file nahi hai</string>
+              <string name="file_not_supported">Yeh file type support nahi hai</string>
+              <string name="error_opening">File open nahi ho saki</string>
+          </resources>
+          EOF
+
+      - name: Create colors.xml
+        run: |
+          cat > app/src/main/res/values/colors.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="primary">#1565C0</color>
+              <color name="primary_dark">#0D47A1</color>
+              <color name="accent">#FF6F00</color>
+              <color name="background">#F5F5F5</color>
+              <color name="text_primary">#212121</color>
+              <color name="text_secondary">#757575</color>
+              <color name="pdf_color">#E53935</color>
+              <color name="excel_color">#2E7D32</color>
+              <color name="word_color">#1565C0</color>
+              <color name="text_color">#546E7A</color>
+              <color name="image_color">#6A1B9A</color>
+          </resources>
+          EOF
+
+      - name: Create themes.xml
+        run: |
+          cat > app/src/main/res/values/themes.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="Theme.MyDocReader" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+                  <item name="colorPrimary">@color/primary</item>
+                  <item name="colorPrimaryDark">@color/primary_dark</item>
+                  <item name="colorAccent">@color/accent</item>
+              </style>
+          </resources>
+          EOF
+
+      - name: Create MainActivity
+        run: |
+          cat > app/src/main/java/com/mydocreader/app/MainActivity.java << 'EOF'
+          package com.mydocreader.app;
+          import android.Manifest;
+          import android.app.Activity;
+          import android.content.Intent;
+          import android.content.SharedPreferences;
+          import android.content.pm.PackageManager;
+          import android.net.Uri;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.os.Environment;
+          import android.provider.Settings;
+          import android.view.View;
+          import android.widget.TextView;
+          import android.widget.Toast;
+          import androidx.activity.result.ActivityResultLauncher;
+          import androidx.activity.result.contract.ActivityResultContracts;
+          import androidx.appcompat.app.AppCompatActivity;
+          import androidx.core.app.ActivityCompat;
+          import androidx.core.content.ContextCompat;
+          import androidx.recyclerview.widget.LinearLayoutManager;
+          import androidx.recyclerview.widget.RecyclerView;
+          import com.google.android.material.floatingactionbutton.FloatingActionButton;
+          import org.json.JSONArray;
+          import org.json.JSONException;
+          import java.util.ArrayList;
+          import java.util.List;
+          public class MainActivity extends AppCompatActivity {
+              private RecyclerView recyclerView;
+              private RecentFilesAdapter adapter;
+              private List<String> recentFiles = new ArrayList<>();
+              private TextView emptyText;
+              private static final String PREFS_NAME = "DocReaderPrefs";
+              private static final String RECENT_KEY = "recent_files";
+              private ActivityResultLauncher<Intent> filePickerLauncher;
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_main);
+                  recyclerView = findViewById(R.id.recyclerView);
+                  emptyText = findViewById(R.id.emptyText);
+                  FloatingActionButton fab = findViewById(R.id.fab);
+                  adapter = new RecentFilesAdapter(recentFiles, this::openFile);
+                  recyclerView.setLayoutManager(new LinearLayoutManager(this));
+                  recyclerView.setAdapter(adapter);
+                  filePickerLauncher = registerForActivityResult(
+                      new ActivityResultContracts.StartActivityForResult(),
+                      result -> {
+                          if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                              Uri uri = result.getData().getData();
+                              if (uri != null) openFileByUri(uri);
+                          }
+                      });
+                  fab.setOnClickListener(v -> openFilePicker());
+                  loadRecentFiles();
+              }
+              private void openFilePicker() {
+                  Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                  intent.setType("*/*");
+                  intent.addCategory(Intent.CATEGORY_OPENABLE);
+                  filePickerLauncher.launch(Intent.createChooser(intent, "File Chuniye"));
+              }
+              private void openFile(String path) {
+                  String lower = path.toLowerCase();
+                  Intent intent;
+                  if (lower.endsWith(".pdf")) intent = new Intent(this, PdfViewerActivity.class);
+                  else if (lower.endsWith(".xls") || lower.endsWith(".xlsx")) intent = new Intent(this, ExcelViewerActivity.class);
+                  else if (lower.endsWith(".doc") || lower.endsWith(".docx")) intent = new Intent(this, WordViewerActivity.class);
+                  else if (lower.endsWith(".txt")) intent = new Intent(this, TextViewerActivity.class);
+                  else if (lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png")) intent = new Intent(this, ImageViewerActivity.class);
+                  else { Toast.makeText(this, getString(R.string.file_not_supported), Toast.LENGTH_SHORT).show(); return; }
+                  intent.putExtra("file_path", path);
+                  startActivity(intent);
+              }
+              private void openFileByUri(Uri uri) {
+                  String mime = getContentResolver().getType(uri);
+                  Intent intent = null;
+                  if (mime != null) {
+                      if (mime.equals("application/pdf")) intent = new Intent(this, PdfViewerActivity.class);
+                      else if (mime.contains("excel") || mime.contains("spreadsheet")) intent = new Intent(this, ExcelViewerActivity.class);
+                      else if (mime.contains("word") || mime.contains("wordprocessing")) intent = new Intent(this, WordViewerActivity.class);
+                      else if (mime.equals("text/plain")) intent = new Intent(this, TextViewerActivity.class);
+                      else if (mime.startsWith("image/")) intent = new Intent(this, ImageViewerActivity.class);
+                  }
+                  if (intent != null) { intent.putExtra("file_uri", uri.toString()); startActivity(intent); }
+                  else Toast.makeText(this, getString(R.string.file_not_supported), Toast.LENGTH_SHORT).show();
+              }
+              private void loadRecentFiles() {
+                  SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+                  String json = prefs.getString(RECENT_KEY, "[]");
+                  recentFiles.clear();
+                  try { JSONArray arr = new JSONArray(json); for (int i = 0; i < arr.length(); i++) recentFiles.add(arr.getString(i)); }
+                  catch (JSONException e) { e.printStackTrace(); }
+                  adapter.notifyDataSetChanged();
+                  emptyText.setVisibility(recentFiles.isEmpty() ? View.VISIBLE : View.GONE);
+              }
+          }
+          EOF
+
+      - name: Create other Activities
+        run: |
+          cat > app/src/main/java/com/mydocreader/app/PdfViewerActivity.java << 'EOF'
+          package com.mydocreader.app;
+          import android.net.Uri;
+          import android.os.Bundle;
+          import android.widget.Toast;
+          import androidx.appcompat.app.AppCompatActivity;
+          import com.github.barteksc.pdfviewer.PDFView;
+          import com.github.barteksc.pdfviewer.scroll.DefaultScrollHandle;
+          import java.io.File;
+          public class PdfViewerActivity extends AppCompatActivity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_pdf_viewer);
+                  if (getSupportActionBar() != null) getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+                  PDFView pdfView = findViewById(R.id.pdfView);
+                  String filePath = getIntent().getStringExtra("file_path");
+                  String fileUri = getIntent().getStringExtra("file_uri");
+                  if (filePath != null) {
+                      pdfView.fromFile(new File(filePath)).scrollHandle(new DefaultScrollHandle(this)).enableSwipe(true).enableDoubletap(true).onError(t -> Toast.makeText(this, getString(R.string.error_opening), Toast.LENGTH_SHORT).show()).load();
+                  } else if (fileUri != null) {
+                      pdfView.fromUri(Uri.parse(fileUri)).scrollHandle(new DefaultScrollHandle(this)).enableSwipe(true).enableDoubletap(true).onError(t -> Toast.makeText(this, getString(R.string.error_opening), Toast.LENGTH_SHORT).show()).load();
+                  }
+              }
+              @Override public boolean onSupportNavigateUp() { finish(); return true; }
+          }
+          EOF
+
+          cat > app/src/main/java/com/mydocreader/app/ExcelViewerActivity.java << 'EOF'
+          package com.mydocreader.app;
+          import android.net.Uri;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.widget.*;
+          import androidx.appcompat.app.AppCompatActivity;
+          import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+          import org.apache.poi.ss.usermodel.*;
+          import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+          import java.io.*;
+          import java.util.*;
+          public class ExcelViewerActivity extends AppCompatActivity {
+              private TableLayout tableLayout;
+              private Workbook workbook;
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_excel_viewer);
+                  if (getSupportActionBar() != null) getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+                  tableLayout = findViewById(R.id.tableLayout);
+                  Spinner sheetSpinner = findViewById(R.id.sheetSpinner);
+                  String filePath = getIntent().getStringExtra("file_path");
+                  String fileUri = getIntent().getStringExtra("file_uri");
+                  try {
+                      InputStream is;
+                      boolean isXlsx = false;
+                      if (filePath != null) { is = new FileInputStream(new File(filePath)); isXlsx = filePath.endsWith(".xlsx"); }
+                      else { Uri uri = Uri.parse(fileUri); is = getContentResolver().openInputStream(uri); String mime = getContentResolver().getType(uri); isXlsx = mime != null && mime.contains("openxmlformats"); }
+                      workbook = isXlsx ? new XSSFWorkbook(is) : new HSSFWorkbook(is);
+                      List<String> names = new ArrayList<>();
+                      for (int i = 0; i < workbook.getNumberOfSheets(); i++) names.add(workbook.getSheetName(i));
+                      ArrayAdapter<String> a = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, names);
+                      a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                      sheetSpinner.setAdapter(a);
+                      sheetSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                          public void onItemSelected(AdapterView<?> p, View v, int pos, long id) { loadSheet(pos); }
+                          public void onNothingSelected(AdapterView<?> p) {}
+                      });
+                      loadSheet(0);
+                  } catch (Exception e) { Toast.makeText(this, getString(R.string.error_opening), Toast.LENGTH_LONG).show(); }
+              }
+              private void loadSheet(int index) {
+                  tableLayout.removeAllViews();
+                  Sheet sheet = workbook.getSheetAt(index);
+                  DataFormatter fmt = new DataFormatter();
+                  for (Row row : sheet) {
+                      TableRow tr = new TableRow(this);
+                      for (Cell cell : row) {
+                          TextView tv = new TextView(this);
+                          tv.setText(fmt.formatCellValue(cell));
+                          tv.setPadding(16, 8, 16, 8);
+                          tv.setTextSize(13);
+                          tr.addView(tv);
+                      }
+                      tableLayout.addView(tr);
+                  }
+              }
+              @Override public boolean onSupportNavigateUp() { finish(); return true; }
+          }
+          EOF
+
+          cat > app/src/main/java/com/mydocreader/app/WordViewerActivity.java << 'EOF'
+          package com.mydocreader.app;
+          import android.net.Uri;
+          import android.os.Bundle;
+          import android.widget.TextView;
+          import android.widget.Toast;
+          import androidx.appcompat.app.AppCompatActivity;
+          import org.apache.poi.hwpf.HWPFDocument;
+          import org.apache.poi.hwpf.extractor.WordExtractor;
+          import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+          import org.apache.poi.xwpf.usermodel.XWPFDocument;
+          import java.io.*;
+          public class WordViewerActivity extends AppCompatActivity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_word_viewer);
+                  if (getSupportActionBar() != null) getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+                  TextView tv = findViewById(R.id.wordTextView);
+                  String filePath = getIntent().getStringExtra("file_path");
+                  String fileUri = getIntent().getStringExtra("file_uri");
+                  try {
+                      InputStream is;
+                      boolean isDocx = false;
+                      if (filePath != null) { is = new FileInputStream(new File(filePath)); isDocx = filePath.endsWith(".docx"); }
+                      else { Uri uri = Uri.parse(fileUri); is = getContentResolver().openInputStream(uri); String mime = getContentResolver().getType(uri); isDocx = mime != null && mime.contains("wordprocessingml"); }
+                      String content;
+                      if (isDocx) { XWPFDocument doc = new XWPFDocument(is); XWPFWordExtractor ex = new XWPFWordExtractor(doc); content = ex.getText(); ex.close(); }
+                      else { HWPFDocument doc = new HWPFDocument(is); WordExtractor ex = new WordExtractor(doc); content = ex.getText(); ex.close(); }
+                      tv.setText(content);
+                  } catch (Exception e) { Toast.makeText(this, getString(R.string.error_opening), Toast.LENGTH_LONG).show(); }
+              }
+              @Override public boolean onSupportNavigateUp() { finish(); return true; }
+          }
+          EOF
+
+          cat > app/src/main/java/com/mydocreader/app/TextViewerActivity.java << 'EOF'
+          package com.mydocreader.app;
+          import android.net.Uri;
+          import android.os.Bundle;
+          import android.widget.TextView;
+          import android.widget.Toast;
+          import androidx.appcompat.app.AppCompatActivity;
+          import java.io.*;
+          public class TextViewerActivity extends AppCompatActivity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_text_viewer);
+                  if (getSupportActionBar() != null) getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+                  TextView tv = findViewById(R.id.textContent);
+                  String filePath = getIntent().getStringExtra("file_path");
+                  String fileUri = getIntent().getStringExtra("file_uri");
+                  try {
+                      InputStream is = filePath != null ? new FileInputStream(new File(filePath)) : getContentResolver().openInputStream(Uri.parse(fileUri));
+                      BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                      StringBuilder sb = new StringBuilder();
+                      String line;
+                      while ((line = reader.readLine()) != null) sb.append(line).append("\n");
+                      reader.close();
+                      tv.setText(sb.toString());
+                  } catch (Exception e) { Toast.makeText(this, getString(R.string.error_opening), Toast.LENGTH_SHORT).show(); }
+              }
+              @Override public boolean onSupportNavigateUp() { finish(); return true; }
+          }
+          EOF
+
+          cat > app/src/main/java/com/mydocreader/app/ImageViewerActivity.java << 'EOF'
+          package com.mydocreader.app;
+          import android.net.Uri;
+          import android.os.Bundle;
+          import android.widget.ImageView;
+          import androidx.appcompat.app.AppCompatActivity;
+          import java.io.File;
+          public class ImageViewerActivity extends AppCompatActivity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  setContentView(R.layout.activity_image_viewer);
+                  if (getSupportActionBar() != null) getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+                  ImageView iv = findViewById(R.id.imageView);
+                  String filePath = getIntent().getStringExtra("file_path");
+                  String fileUri = getIntent().getStringExtra("file_uri");
+                  if (filePath != null) iv.setImageURI(Uri.fromFile(new File(filePath)));
+                  else if (fileUri != null) iv.setImageURI(Uri.parse(fileUri));
+              }
+              @Override public boolean onSupportNavigateUp() { finish(); return true; }
+          }
+          EOF
+
+          cat > app/src/main/java/com/mydocreader/app/RecentFilesAdapter.java << 'EOF'
+          package com.mydocreader.app;
+          import android.view.*;
+          import android.widget.*;
+          import androidx.annotation.NonNull;
+          import androidx.recyclerview.widget.RecyclerView;
+          import java.io.File;
+          import java.util.List;
+          public class RecentFilesAdapter extends RecyclerView.Adapter<RecentFilesAdapter.ViewHolder> {
+              private List<String> files;
+              private OnFileClickListener listener;
+              public interface OnFileClickListener { void onFileClick(String path); }
+              public RecentFilesAdapter(List<String> files, OnFileClickListener listener) { this.files = files; this.listener = listener; }
+              @NonNull @Override
+              public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+                  View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_recent_file, parent, false);
+                  return new ViewHolder(view);
+              }
+              @Override
+              public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+                  String path = files.get(position);
+                  holder.fileName.setText(new File(path).getName());
+                  holder.filePath.setText(path);
+                  holder.itemView.setOnClickListener(v -> listener.onFileClick(path));
+              }
+              @Override public int getItemCount() { return files.size(); }
+              static class ViewHolder extends RecyclerView.ViewHolder {
+                  ImageView fileIcon; TextView fileName, filePath;
+                  ViewHolder(View v) { super(v); fileIcon = v.findViewById(R.id.fileIcon); fileName = v.findViewById(R.id.fileName); filePath = v.findViewById(R.id.filePath); }
+              }
+          }
+          EOF
+
+      - name: Create layouts
+        run: |
+          cat > app/src/main/res/layout/activity_main.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#F5F5F5">
+              <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="16dp">
+                  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Recent Files" android:textSize="18sp" android:textStyle="bold" android:paddingBottom="8dp"/>
+                  <TextView android:id="@+id/emptyText" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/no_recent_files" android:gravity="center" android:paddingTop="40dp" android:visibility="gone"/>
+                  <androidx.recyclerview.widget.RecyclerView android:id="@+id/recyclerView" android:layout_width="match_parent" android:layout_height="match_parent"/>
+              </LinearLayout>
+              <com.google.android.material.floatingactionbutton.FloatingActionButton android:id="@+id/fab" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="bottom|end" android:layout_margin="16dp" android:contentDescription="Open File" app:srcCompat="@android:drawable/ic_input_add" android:backgroundTint="#FF6F00"/>
+          </androidx.coordinatorlayout.widget.CoordinatorLayout>
+          EOF
+
+          cat > app/src/main/res/layout/activity_pdf_viewer.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent">
+              <com.github.barteksc.pdfviewer.PDFView android:id="@+id/pdfView" android:layout_width="match_parent" android:layout_height="match_parent"/>
+          </LinearLayout>
+          EOF
+
+          cat > app/src/main/res/layout/activity_excel_viewer.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
+              <Spinner android:id="@+id/sheetSpinner" android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="8dp"/>
+              <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
+                  <HorizontalScrollView android:layout_width="wrap_content" android:layout_height="wrap_content">
+                      <TableLayout android:id="@+id/tableLayout" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="4dp"/>
+                  </HorizontalScrollView>
+              </ScrollView>
+          </LinearLayout>
+          EOF
+
+          cat > app/src/main/res/layout/activity_word_viewer.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="16dp">
+              <TextView android:id="@+id/wordTextView" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="15sp" android:lineSpacingMultiplier="1.4"/>
+          </ScrollView>
+          EOF
+
+          cat > app/src/main/res/layout/activity_text_viewer.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="16dp">
+              <TextView android:id="@+id/textContent" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="14sp" android:fontFamily="monospace"/>
+          </ScrollView>
+          EOF
+
+          cat > app/src/main/res/layout/activity_image_viewer.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000">
+              <ImageView android:id="@+id/imageView" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter"/>
+          </FrameLayout>
+          EOF
+
+          cat > app/src/main/res/layout/item_recent_file.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" app:cardCornerRadius="8dp" app:cardElevation="2dp">
+              <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="12dp" android:gravity="center_vertical">
+                  <ImageView android:id="@+id/fileIcon" android:layout_width="40dp" android:layout_height="40dp" android:padding="4dp"/>
+                  <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:paddingStart="12dp">
+                      <TextView android:id="@+id/fileName" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="15sp" android:textStyle="bold" android:ellipsize="end" android:maxLines="1"/>
+                      <TextView android:id="@+id/filePath" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="11sp" android:ellipsize="start" android:maxLines="1"/>
+                  </LinearLayout>
+              </LinearLayout>
+          </androidx.cardview.widget.CardView>
+          EOF
+
+      - name: Install Gradle Wrapper
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: '8.0'
+          gradle-version: '8.1.1'
 
       - name: Build Debug APK
         run: gradle assembleDebug --stacktrace
-        env:
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
